@@ -1,742 +1,431 @@
-import React, { useMemo, useState} from "react";
- 
+import React, { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+
+const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000/api";
+const MOCK_MODE = true; // set to false once the backend API is running
+
 const categories = ["Client", "Vendor", "Interview", "Delivery", "Internal Guest"];
 
 const hosts = [
-
-  { id: 101, name: "John Peterson", department: "Finance" },
-
-  { id: 102, name: "Sarah Khan", department: "IT" },
-
+  { id: 101, name: "Koketso Boipelo", department: "IT/SQL Development" },
+  { id: 102, name: "Lebo Khan", department: "IT" },
   { id: 103, name: "David Mokoena", department: "Operations" },
-
 ];
 
 const locations = [
-
   { id: 1, name: "Board Room" },
-
   { id: 2, name: "Conference Room A" },
-
   { id: 3, name: "Conference Room B" },
-
   { id: 4, name: "Meeting Room 1" },
-
 ];
- 
+
 const emptyVisitor = {
-
   fullName: "",
-
   contactNum: "",
-
   email: "",
-
   organizationName: "",
-
   vehicleNum: "",
-
 };
- 
+
+function isValidEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+function isValidPhone(phone) {
+  const digits = phone.replace(/[\s\-()]/g, "");
+  return /^\d{7,15}$/.test(digits);
+}
+
 function InputField({ label, name, value, onChange, type = "text", required = false, placeholder = "" }) {
-
   return (
-<div className="space-y-1">
-<label className="block text-sm font-medium text-slate-700">
-
+    <div className="space-y-1">
+      <label className="block text-sm font-medium text-brand-dark">
         {label} {required && <span className="text-red-500">*</span>}
-</label>
-<input
-
+      </label>
+      <input
         type={type}
-
         name={name}
-
         value={value}
-
         onChange={onChange}
-
         placeholder={placeholder}
-
-        className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
-
+        className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm outline-none transition focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/20"
       />
-</div>
-
+    </div>
   );
-
 }
- 
+
 function SelectField({ label, name, value, onChange, options, required = false, placeholder = "Select" }) {
-
   return (
-<div className="space-y-1">
-<label className="block text-sm font-medium text-slate-700">
-
+    <div className="space-y-1">
+      <label className="block text-sm font-medium text-brand-dark">
         {label} {required && <span className="text-red-500">*</span>}
-</label>
-<select
-
+      </label>
+      <select
         name={name}
-
         value={value}
-
         onChange={onChange}
-
-        className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
->
-<option value="">{placeholder}</option>
-
-        {options.map((option) => (
-<option key={option.value} value={option.value}>
-
-            {option.label}
-</option>
-
+        className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm outline-none transition focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/20"
+      >
+        <option value="">{placeholder}</option>
+        {options.map((opt) => (
+          <option key={opt.value} value={opt.value}>
+            {opt.label}
+          </option>
         ))}
-</select>
-</div>
-
+      </select>
+    </div>
   );
-
 }
- 
-function VisitorCard({ index, visitor, onChange, onRemove, canRemove }) {
 
+function VisitorCard({ index, visitor, onChange, onRemove, canRemove, errors }) {
   return (
-<div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 shadow-sm">
-<div className="mb-4 flex items-center justify-between">
-<h3>Visitor {index + 1}</h3>
-
+    <div className="rounded-xl border border-gray-200 bg-white p-5">
+      <div className="mb-4 flex items-center justify-between">
+        <h3 className="text-sm font-semibold text-brand-dark">Visitor {index + 1}</h3>
         {canRemove && (
-<button
-
+          <button
             type="button"
-
             onClick={() => onRemove(index)}
-
-            className="rounded-lg border border-red-200 px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50"
->
-
+            className="rounded-lg border border-red-200 px-3 py-1 text-xs font-medium text-red-600 hover:bg-red-50"
+          >
             Remove
-</button>
-
+          </button>
         )}
-</div>
- 
+      </div>
+
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-<InputField
-
-          label="Full Name"
-
-          name="fullName"
-
-          value={visitor.fullName}
-
-          onChange={(e) => onChange(index, e)}
-
-          required
-
-          placeholder="Enter full name"
-
-        />
-<InputField
-
-          label="Contact Number"
-
-          name="contactNum"
-
-          value={visitor.contactNum}
-
-          onChange={(e) => onChange(index, e)}
-
-          required
-
-          placeholder="Enter contact number"
-
-        />
-<InputField
-
-          label="Email ID"
-
-          name="email"
-
-          type="email"
-
-          value={visitor.email}
-
-          onChange={(e) => onChange(index, e)}
-
-          required
-
-          placeholder="Enter email address"
-
-        />
-<InputField
-
-          label="Organization Name"
-
-          name="organizationName"
-
-          value={visitor.organizationName}
-
-          onChange={(e) => onChange(index, e)}
-
-          required
-
-          placeholder="Enter organization"
-
-        />
-<div className="md:col-span-2">
-<InputField
-
-            label="Vehicle Number"
-
-            name="vehicleNum"
-
-            value={visitor.vehicleNum}
-
-            onChange={(e) => onChange(index, e)}
-
-            placeholder="Optional"
-
-          />
-</div>
-</div>
-</div>
-
+        <div>
+          <InputField label="Full Name" name="fullName" value={visitor.fullName} onChange={(e) => onChange(index, e)} required placeholder="Enter full name" />
+          {errors[`fullName_${index}`] && <p className="mt-1 text-xs text-red-600">{errors[`fullName_${index}`]}</p>}
+        </div>
+        <div>
+          <InputField label="Contact Number" name="contactNum" value={visitor.contactNum} onChange={(e) => onChange(index, e)} required placeholder="e.g. 0821234567" />
+          {errors[`contactNum_${index}`] && <p className="mt-1 text-xs text-red-600">{errors[`contactNum_${index}`]}</p>}
+        </div>
+        <div>
+          <InputField label="Email" name="email" type="email" value={visitor.email} onChange={(e) => onChange(index, e)} required placeholder="Enter email address" />
+          {errors[`email_${index}`] && <p className="mt-1 text-xs text-red-600">{errors[`email_${index}`]}</p>}
+        </div>
+        <div>
+          <InputField label="Organization" name="organizationName" value={visitor.organizationName} onChange={(e) => onChange(index, e)} required placeholder="Enter organization" />
+          {errors[`organizationName_${index}`] && <p className="mt-1 text-xs text-red-600">{errors[`organizationName_${index}`]}</p>}
+        </div>
+        <div className="md:col-span-2">
+          <InputField label="Vehicle Number" name="vehicleNum" value={visitor.vehicleNum} onChange={(e) => onChange(index, e)} placeholder="Optional" />
+        </div>
+      </div>
+    </div>
   );
-
 }
- 
+
+function SuccessScreen({ meetingId, onNewRegistration }) {
+  return (
+    <div className="mx-auto max-w-md text-center">
+      <div className="rounded-xl bg-white p-8 shadow-sm">
+        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
+          <svg className="h-8 w-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+          </svg>
+        </div>
+        <h2 className="mb-2 text-xl font-semibold text-brand-dark">Registration Successful</h2>
+        <p className="mb-1 text-sm text-brand-grey">Your visit has been registered.</p>
+        <p className="mb-6 text-sm text-brand-grey">
+          Meeting ID: <span className="font-semibold text-brand-dark">{meetingId}</span>
+        </p>
+        <p className="mb-6 text-xs text-brand-grey">
+          The host has been notified and will be with you shortly.
+        </p>
+        <button
+          onClick={onNewRegistration}
+          className="w-full rounded-lg bg-brand-dark px-5 py-2.5 text-sm font-semibold text-white hover:bg-gray-800"
+        >
+          Register Another Visitor
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function VmsFrontendStarter() {
+  const navigate = useNavigate();
 
   const [form, setForm] = useState({
-
     visitorCategory: "",
-
     purpose: "",
-
     hostEmployeeId: "",
-
     locationId: "",
-    
-    checkInTime: "",
-
-    checkOutTime: "",
-
-    numberOfVisitors: 1,
-
     visitors: [{ ...emptyVisitor }],
-
   });
- 
+
   const [errors, setErrors] = useState({});
+  const [submitState, setSubmitState] = useState({ loading: false, success: false, error: "" });
+  const [meetingId, setMeetingId] = useState(null);
 
-  const [submitState, setSubmitState] = useState({ loading: false, success: "", error: "" });
- 
   const hostOptions = useMemo(
-
-    () => hosts.map((host) => ({ value: String(host.id), label: `${host.name} - ${host.department}` })),
-
+    () => hosts.map((h) => ({ value: String(h.id), label: `${h.name} - ${h.department}` })),
     []
-
   );
- 
+
   const locationOptions = useMemo(
-
-    () => locations.map((location) => ({ value: String(location.id), label: location.name })),
-
+    () => locations.map((l) => ({ value: String(l.id), label: l.name })),
     []
-
   );
- 
+
   const categoryOptions = useMemo(
-
-    () => categories.map((category) => ({ value: category, label: category })),
-
+    () => categories.map((c) => ({ value: c, label: c })),
     []
-
-  ); 
-
- 
- 
-  const handleTopLevelChange = (e) => {
-
-    const { name, value } = e.target;
- 
-    if (name === "numberOfVisitors") {
-
-      const count = Math.max(1, Number(value) || 1);
-
-      setForm((prev) => {
-
-        const currentVisitors = [...prev.visitors];
-        while (currentVisitors.length < count) currentVisitors.push({ ...emptyVisitor });
-        currentVisitors.length = count;
-        return {
-
-          ...prev,
-
-          numberOfVisitors: count,
-
-          visitors: currentVisitors,
-
-        };
-
-      });
-
-      return;
-
-    }
- 
-    setForm((prev) => ({ ...prev, [name]: value }));
-
-  };
- 
-  const handleVisitorChange = (index, e) => {
-
-    const { name, value } = e.target;
-
-    setForm((prev) => {
-
-      const visitors = [...prev.visitors];
-
-      visitors[index] = { ...visitors[index], [name]: value };
-
-      return { ...prev, visitors };
-
-    });
-
-  };
- 
-  const addVisitor = () => {
-
-    setForm((prev) => ({
-
-      ...prev,
-      
-      visitors: [...prev.visitors, { ...emptyVisitor }],
-
-    }));
-
-  };
- 
-  const removeVisitor = (index) => {
-
-    setForm((prev) => ({
-      ...prev,
-
-     visitors : prev.visitors.filter((_, i) => i !== index),
-    }));
-
-  };
- 
-  const validate = () => {
-
-    const newErrors = {};
- 
-    if (!form.visitorCategory) newErrors.visitorCategory = "Visitor category is required";
-
-    if (!form.purpose.trim()) newErrors.purpose = "Purpose is required";
-
-    if (!form.hostEmployeeId) newErrors.hostEmployeeId = "Host employee is required";
-
-    if (!form.locationId) newErrors.locationId = "Meeting location is required";
- 
-    form.visitors.forEach((visitor, index) => {
-
-      if (!visitor.fullName.trim()) newErrors[`fullName_${index}`] = "Full name is required";
-
-      if (!visitor.contactNum.trim()) newErrors[`contactNumber_${index}`] = "Contact number is required";
-
-      if (!visitor.email.trim()) newErrors[`email_${index}`] = "Email is required";
-
-      if (!visitor.organizationName.trim()) newErrors[`organizationName_${index}`] = "Organization is required";
-
-    });
- 
-    setErrors(newErrors);
-
-    return Object.keys(newErrors).length === 0;
-
-  };
- 
-  const buildPayload = () => ({
-
-    visitorCategory: form.visitorCategory,
-
-    purpose: form.purpose,
-
-    hostEmployeeId: Number(form.hostEmployeeId),
-
-    locationId: Number(form.locationId),
-
-    checkInTime: form.checkInTime ||  null,
-
-    checkOutTime: form.checkOutTime || null,
-
-
-     visitors: form.visitors.map((visitor) => ({
-
-      fullName: visitor.fullName,
-
-      contactNum: visitor.contactNum,
-
-      email: visitor.email,
-
-      organizationName: visitor.organizationName,
-
-      vehicleNum: visitor.vehicleNum || null,
-
-    })),
-
-  });
- 
-  const handleSubmit = async (e) => {
-
-    e.preventDefault();
-
-    setSubmitState({ loading: false, success: "", error: "" });
- 
-    if (!validate()) {
-
-      setSubmitState({ loading: false, success: "", error: "Please fill all required fields." });
-
-      return;
-
-    }
- 
-    const payload = buildPayload();
- 
-    try {
-
-      setSubmitState({ loading: true, success: "", error: "" });
- 
-      const response = await fetch("http://192.168.1.142:5000/api/visitors", {
-
-        method: "POST",
-
-        headers: {
-
-          "Content-Type": "application/json",
-
-        },
-
-        body: JSON.stringify(payload),
-
-      });
- 
-      if (!response.ok) {
-
-        throw new Error("Failed to submit visitor registration.");
-
-      }
- 
-      const result = await response.json();
- 
-      setSubmitState({
-
-        loading: false,
-
-        success: `Registration completed successfully. Meeting ID: ${result.meetingId}`,
-
-        error: "",
-
-      });
- 
-      setForm({
-
-        visitorCategory: "",
-
-        purpose: "",
-
-        hostEmployeeId: "",
-
-        locationId: "",
-        
-        checkInTime: "",
-
-        checkOutTime: "",
-
-        numberOfVisitors: 1,
-
-        visitors: [{ ...emptyVisitor }],
-
-      });
-
-      setErrors({});
-
-    } catch (error) {
-
-      setSubmitState({
-
-        loading: false,
-
-        success: "",
-
-        error: error.message || "Something went wrong.",
-
-      });
-
-    }
-
-  };
- 
-  return (
-<div className="min-h-screen bg-slate-100 px-4 py-10">
-<div className="mx-auto max-w-5xl">
-<div className="mb-8 rounded-3xl bg-white p-8 shadow-lg">
-<div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-<div>
-<p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">Visitor Management System</p>
-<h1 className="mt-2 text-3xl font-bold text-slate-900">Visitor Registration</h1>
-<p className="mt-2 text-sm text-slate-600">
-
-                Scan QR and fill the form to register your visit. Multiple visitors can be added under one meeting.
-</p>
-</div>
-<div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-5 text-center">
-<p className="text-xs font-semibold uppercase tracking-wide text-slate-500">QR Placeholder</p>
-<div className="mt-2 h-24 w-24 rounded-xl border border-slate-300 bg-white" />
-</div>
-</div>
- 
-          <form onSubmit={handleSubmit} className="space-y-8">
-<div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-<div>
-<SelectField
-
-                  label="Visitor Category"
-
-                  name="visitorCategory"
-
-                  value={form.visitorCategory}
-
-                  onChange={handleTopLevelChange}
-
-                  options={categoryOptions}
-
-                  required
-
-                  placeholder="Select category"
-
-                />
-
-                {errors.visitorCategory && <p className="mt-1 text-xs text-red-600">{errors.visitorCategory}</p>}
-</div>
- 
-              <div>
-<InputField
-
-                  label="Purpose of Visit"
-
-                  name="purpose"
-
-                  value={form.purpose}
-
-                  onChange={handleTopLevelChange}
-
-                  required
-
-                  placeholder="Enter purpose"
-
-                />
-
-                {errors.purpose && <p className="mt-1 text-xs text-red-600">{errors.purpose}</p>}
-</div>
- 
-              <div>
-<SelectField
-
-                  label="Person to Meet"
-
-                  name="hostEmployeeId"
-
-                  value={form.hostEmployeeId}
-
-                  onChange={handleTopLevelChange}
-
-                  options={hostOptions}
-
-                  required
-
-                  placeholder="Select employee"
-
-                />
-
-                {errors.hostEmployeeId && <p className="mt-1 text-xs text-red-600">{errors.hostEmployeeId}</p>}
-</div>
- 
-              <div>
-<SelectField
-
-                  label="Meeting Location"
-
-                  name="locationId"
-
-                  value={form.locationId}
-
-                  onChange={handleTopLevelChange}
-
-                  options={locationOptions}
-
-                  required
-
-                  placeholder="Select location"
-
-                />
-
-                {errors.locationId && <p className="mt-1 text-xs text-red-600">{errors.locationId}</p>}
-</div>
-</div>
- 
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-<div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-<div>
-<h2 className="text-lg font-semibold text-slate-800">Visitors</h2>
-<p className="text-sm text-slate-600">Add one or more visitors for the same meeting ID.</p>
-</div>
-<div className="flex items-center gap-3">
-<div className="w-40">
-<InputField
-
-                      label="Number of Visitors"
-
-                      name="numberOfVisitors"
-
-                      type="number"
-
-                      value={form.numberOfVisitors}
-
-                      onChange={handleTopLevelChange}
-
-                    />
-</div>
-<button
-
-                    type="button"
-
-                    onClick={addVisitor}
-
-                    className="mt-6 rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white hover:bg-slate-800"
->
-
-                    + Add Visitor
-</button>
-</div>
-</div>
-</div>
- 
-            <div className="space-y-4">
-
-              {form.visitors.map((visitor, index) => (
-<div key={index}>
-<VisitorCard
-
-                    index={index}
-
-                    visitor={visitor}
-
-                    onChange={handleVisitorChange}
-
-                    onRemove={removeVisitor}
-
-                    canRemove={form.visitors.length > 1}
-
-                  />
-<div className="mt-2 grid grid-cols-1 gap-1 md:grid-cols-2">
-
-                    {errors[`fullName_${index}`] && <p className="text-xs text-red-600">Visitor {index + 1}: {errors[`fullName_${index}`]}</p>}
-
-                    {errors[`contactNum_${index}`] && <p className="text-xs text-red-600">Visitor {index + 1}: {errors[`contactNum_${index}`]}</p>}
-
-                    {errors[`email_${index}`] && <p className="text-xs text-red-600">Visitor {index + 1}: {errors[`email_${index}`]}</p>}
-
-                    {errors[`organizationName_${index}`] && <p className="text-xs text-red-600">Visitor {index + 1}: {errors[`organizationName_${index}`]}</p>}
-</div>
-</div>
-
-              ))}
-</div>
- 
-            {(submitState.success || submitState.error) && (
-<div
-
-                className={`rounded-2xl px-4 py-3 text-sm font-medium ${
-
-                  submitState.success
-
-                    ? "border border-emerald-200 bg-emerald-50 text-emerald-700"
-
-                    : "border border-red-200 bg-red-50 text-red-700"
-
-                }`}
->
-
-                {submitState.success || submitState.error}
-</div>
-
-            )}
- 
-            <div className="flex flex-col gap-3 border-t border-slate-200 pt-6 md:flex-row md:justify-end">
-<button
-
-                type="button"
-
-                onClick={() => {
-
-                  setForm({
-
-                    visitorCategory: "",
-
-                    purpose: "",
-
-                    hostEmployeeId: "",
-
-                    locationId: "",
-
-                    checkInTime: "",
-
-                    checkOutTime: "",
-
-                    numberOfVisitors: 1,
-
-                    visitors: [{ ...emptyVisitor }],
-
-                  });
-
-                  setErrors({});
-
-                  setSubmitState({ loading: false, success: "", error: "" });
-
-                }}
-
-                className="rounded-xl border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50"
->
-
-                Reset
-</button>
-<button
-
-                type="submit"
-
-                disabled={submitState.loading}
-
-                className="rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-70"
->
-
-                {submitState.loading ? "Submitting..." : "Register Visitor"}
-</button>
-</div>
-</form>
-</div>
-</div>
-</div>
-
   );
 
-}
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
+  };
 
- 
- 
+  const handleVisitorChange = (index, e) => {
+    const { name, value } = e.target;
+    setForm((prev) => {
+      const visitors = [...prev.visitors];
+      visitors[index] = { ...visitors[index], [name]: value };
+      return { ...prev, visitors };
+    });
+  };
+
+  const addVisitor = () => {
+    setForm((prev) => ({
+      ...prev,
+      visitors: [...prev.visitors, { ...emptyVisitor }],
+    }));
+  };
+
+  const removeVisitor = (index) => {
+    if (form.visitors.length <= 1) return;
+    setForm((prev) => ({
+      ...prev,
+      visitors: prev.visitors.filter((_, i) => i !== index),
+    }));
+  };
+
+  const validate = () => {
+    const newErrors = {};
+
+    if (!form.visitorCategory) newErrors.visitorCategory = "Required";
+    if (!form.purpose.trim()) newErrors.purpose = "Required";
+    if (!form.hostEmployeeId) newErrors.hostEmployeeId = "Required";
+    if (!form.locationId) newErrors.locationId = "Required";
+
+    form.visitors.forEach((v, i) => {
+      if (!v.fullName.trim()) newErrors[`fullName_${i}`] = "Full name is required";
+
+      if (!v.contactNum.trim()) {
+        newErrors[`contactNum_${i}`] = "Contact number is required";
+      } else if (!isValidPhone(v.contactNum)) {
+        newErrors[`contactNum_${i}`] = "Enter a valid phone number";
+      }
+
+      if (!v.email.trim()) {
+        newErrors[`email_${i}`] = "Email is required";
+      } else if (!isValidEmail(v.email)) {
+        newErrors[`email_${i}`] = "Enter a valid email address";
+      }
+
+      if (!v.organizationName.trim()) newErrors[`organizationName_${i}`] = "Organization is required";
+    });
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const resetForm = () => {
+    setForm({
+      visitorCategory: "",
+      purpose: "",
+      hostEmployeeId: "",
+      locationId: "",
+      visitors: [{ ...emptyVisitor }],
+    });
+    setErrors({});
+    setSubmitState({ loading: false, success: false, error: "" });
+    setMeetingId(null);
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setSubmitState({ loading: false, success: false, error: "" });
+
+    if (!validate()) {
+      setSubmitState({ loading: false, success: false, error: "Please fix the errors above." });
+      return;
+    }
+
+    const payload = {
+      visitorCategory: form.visitorCategory,
+      purpose: form.purpose,
+      hostEmployeeId: Number(form.hostEmployeeId),
+      locationId: Number(form.locationId),
+      visitors: form.visitors.map((v) => ({
+        fullName: v.fullName,
+        contactNum: v.contactNum,
+        email: v.email,
+        organizationName: v.organizationName,
+        vehicleNum: v.vehicleNum || null,
+      })),
+    };
+
+    try {
+      setSubmitState({ loading: true, success: false, error: "" });
+
+      let resultMeetingId;
+
+      if (MOCK_MODE) {
+        // simulate a short delay like a real API call
+        await new Promise((resolve) => setTimeout(resolve, 800));
+        resultMeetingId = Math.floor(1000 + Math.random() * 9000);
+      } else {
+        const response = await fetch(`${API_URL}/visitors`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        if (!response.ok) throw new Error("Failed to submit registration.");
+        const result = await response.json();
+        resultMeetingId = result.meetingId;
+      }
+
+      setMeetingId(resultMeetingId);
+      setSubmitState({ loading: false, success: true, error: "" });
+    } catch (err) {
+      setSubmitState({
+        loading: false,
+        success: false,
+        error: err.message || "Something went wrong. Please try again.",
+      });
+    }
+  };
+
+  if (submitState.success && meetingId) {
+    return (
+      <div className="min-h-screen bg-brand-light px-4 py-6">
+        <div className="mx-auto max-w-3xl">
+          <div className="mb-6 flex items-center gap-4 rounded-xl bg-brand-dark px-6 py-4">
+            <img src="/mphatek-logo.png" alt="Mphatek" className="h-10" />
+            <div>
+              <h1 className="text-lg font-semibold text-white">Visitor Registration</h1>
+              <p className="text-xs text-gray-400">Your visit has been registered.</p>
+            </div>
+          </div>
+          <SuccessScreen meetingId={meetingId} onNewRegistration={resetForm} />
+          <p className="mt-6 text-center text-xs text-gray-400">Mphatek Visitor Management System</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-brand-light px-4 py-6">
+      <div className="mx-auto max-w-3xl">
+
+        {/* Header */}
+        <div className="mb-6 flex items-center gap-4 rounded-xl bg-brand-dark px-6 py-4">
+          <img src="/mphatek-logo.png" alt="Mphatek" className="h-10" />
+          <div className="flex-1">
+            <h1 className="text-lg font-semibold text-white">Visitor Registration</h1>
+            <p className="text-xs text-gray-400">Fill in the form below to register your visit.</p>
+          </div>
+          <button
+            onClick={() => navigate("/")}
+            className="rounded-lg border border-gray-600 px-3 py-1.5 text-xs font-medium text-gray-300 hover:bg-gray-800"
+          >
+            Back
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+
+          {/* Meeting Details */}
+          <div className="rounded-xl bg-white p-6 shadow-sm">
+            <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-brand-grey">
+              Meeting Details
+            </h2>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div>
+                <SelectField label="Visitor Category" name="visitorCategory" value={form.visitorCategory} onChange={handleChange} options={categoryOptions} required placeholder="Select category" />
+                {errors.visitorCategory && <p className="mt-1 text-xs text-red-600">{errors.visitorCategory}</p>}
+              </div>
+              <div>
+                <InputField label="Purpose of Visit" name="purpose" value={form.purpose} onChange={handleChange} required placeholder="Enter purpose" />
+                {errors.purpose && <p className="mt-1 text-xs text-red-600">{errors.purpose}</p>}
+              </div>
+              <div>
+                <SelectField label="Person to Meet" name="hostEmployeeId" value={form.hostEmployeeId} onChange={handleChange} options={hostOptions} required placeholder="Select employee" />
+                {errors.hostEmployeeId && <p className="mt-1 text-xs text-red-600">{errors.hostEmployeeId}</p>}
+              </div>
+              <div>
+                <SelectField label="Meeting Location" name="locationId" value={form.locationId} onChange={handleChange} options={locationOptions} required placeholder="Select location" />
+                {errors.locationId && <p className="mt-1 text-xs text-red-600">{errors.locationId}</p>}
+              </div>
+            </div>
+          </div>
+
+          {/* Visitors */}
+          <div className="rounded-xl bg-white p-6 shadow-sm">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-brand-grey">
+                Visitors ({form.visitors.length})
+              </h2>
+              <button
+                type="button"
+                onClick={addVisitor}
+                className="rounded-lg bg-brand-blue px-4 py-2 text-xs font-semibold text-white hover:bg-blue-500"
+              >
+                + Add Visitor
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {form.visitors.map((visitor, index) => (
+                <VisitorCard
+                  key={index}
+                  index={index}
+                  visitor={visitor}
+                  onChange={handleVisitorChange}
+                  onRemove={removeVisitor}
+                  canRemove={form.visitors.length > 1}
+                  errors={errors}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Error Message */}
+          {submitState.error && (
+            <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {submitState.error}
+            </div>
+          )}
+
+          {/* Buttons */}
+          <div className="flex gap-3 justify-end">
+            <button
+              type="button"
+              onClick={resetForm}
+              className="rounded-lg border border-gray-300 px-5 py-2.5 text-sm font-medium text-brand-grey hover:bg-gray-50"
+            >
+              Reset
+            </button>
+            <button
+              type="submit"
+              disabled={submitState.loading}
+              className="rounded-lg bg-brand-dark px-5 py-2.5 text-sm font-semibold text-white hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {submitState.loading ? "Submitting..." : "Register"}
+            </button>
+          </div>
+        </form>
+
+        <p className="mt-6 text-center text-xs text-gray-400">
+          Mphatek Visitor Management System
+        </p>
+      </div>
+    </div>
+  );
+}
