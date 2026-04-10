@@ -7,7 +7,7 @@ router.get("/", async (req, res) => {
   try {
     const pool = await getPool();
     const result = await pool.request().query(
-      "SELECT EmployeeID, FullName, Email, PhoneNumber, Department FROM Employees WHERE IsActive = 1"
+      "SELECT EmployeeID, FullName, Email, PhoneNum, Department FROM Employees WHERE IsActive = 1"
     );
     res.json(result.recordset);
   } catch (err) {
