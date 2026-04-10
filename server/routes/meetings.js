@@ -10,60 +10,66 @@ router.post("/", async (req, res) => {
     return res.status(400).json({ error: "Missing required fields." });
   }
 
+  let transaction;
+
   try {
     const pool = await getPool();
-    const transaction = new sql.Transaction(pool);
+    transaction = new sql.Transaction(pool);
     await transaction.begin();
 
-    try {
-      // insert meeting
-      const meetingResult = await transaction.request()
-        .input("hostEmployeeId", sql.Int, hostEmployeeId)
-        .input("locationId", sql.Int, locationId)
-        .input("visitorCategory", sql.VarChar(100), visitorCategory)
-        .input("purpose", sql.VarChar(500), purpose || "")
-        .input("checkInTime", sql.DateTime, checkInTime ? new Date(checkInTime) : new Date())
+    // insert meeting
+    const meetingRequest = new sql.Request(transaction);
+    const meetingResult = await meetingRequest
+      .input("visitorCategory", sql.NVarChar, visitorCategory)
+      .input("purpose", sql.NVarChar, purpose || "")
+      .input("hostEmployeeId", sql.Int, Number(hostEmployeeId))
+      .input("locationId", sql.Int, Number(locationId))
+      .input("checkInTime", sql.DateTime, checkInTime ? new Date(checkInTime) : new Date())
+      .input("status", sql.NVarChar, "CheckedIn")
+      .input("createdDate", sql.DateTime, new Date())
+      .query(`
+        INSERT INTO Meetings (VisitorCategory, Purpose, HostEmployeeID, LocationID, CheckInTime, Status, CreatedDate)
+        OUTPUT INSERTED.MeetingID
+        VALUES (@visitorCategory, @purpose, @hostEmployeeId, @locationId, @checkInTime, @status, @createdDate)
+      `);
+
+    const meetingId = meetingResult.recordset[0].MeetingID;
+
+    // insert each visitor
+    for (const v of visitors) {
+      const visitorRequest = new sql.Request(transaction);
+      await visitorRequest
+        .input("meetingId", sql.Int, meetingId)
+        .input("fullName", sql.NVarChar, v.fullName)
+        .input("contactNum", sql.NVarChar, v.contactNum)
+        .input("email", sql.NVarChar, v.email || "")
+        .input("organizationName", sql.NVarChar, v.organizationName || "")
+        .input("vehicleNum", sql.NVarChar, v.vehicleNum || "")
+        .input("createdDate", sql.DateTime, new Date())
         .query(`
-          INSERT INTO Meetings (HostEmployeeID, LocationID, VisitorCategory, Purpose, CheckInTime, Status)
-          OUTPUT INSERTED.MeetingID
-          VALUES (@hostEmployeeId, @locationId, @visitorCategory, @purpose, @checkInTime, 'CheckedIn')
+          INSERT INTO Visitors (MeetingID, FullName, ContactNum, Email, OrganizationName, VehicleNum, CreatedDate)
+          VALUES (@meetingId, @fullName, @contactNum, @email, @organizationName, @vehicleNum, @createdDate)
         `);
-
-      const meetingId = meetingResult.recordset[0].MeetingID;
-
-      // insert each visitor
-      for (const v of visitors) {
-        await transaction.request()
-          .input("meetingId", sql.Int, meetingId)
-          .input("fullName", sql.VarChar(150), v.fullName)
-          .input("contactNumber", sql.VarChar(20), v.contactNum)
-          .input("email", sql.VarChar(150), v.email || "")
-          .input("organizationName", sql.VarChar(150), v.organizationName || "")
-          .input("vehicleNumber", sql.VarChar(50), v.vehicleNum || "")
-          .query(`
-            INSERT INTO Visitors (MeetingID, FullName, ContactNumber, Email, OrganizationName, VehicleNumber)
-            VALUES (@meetingId, @fullName, @contactNumber, @email, @organizationName, @vehicleNumber)
-          `);
-      }
-
-      // log the action
-      await transaction.request()
-        .input("entityName", sql.VarChar(100), "Meeting")
-        .input("entityId", sql.Int, meetingId)
-        .input("actionType", sql.VarChar(50), "Insert")
-        .input("performedBy", sql.VarChar(150), visitors[0].fullName)
-        .query(`
-          INSERT INTO AuditLogs (EntityName, EntityID, ActionType, PerformedBy)
-          VALUES (@entityName, @entityId, @actionType, @performedBy)
-        `);
-
-      await transaction.commit();
-      res.status(201).json({ meetingId, status: "CheckedIn" });
-    } catch (err) {
-      await transaction.rollback();
-      throw err;
     }
+
+    // log the action
+    const auditRequest = new sql.Request(transaction);
+    await auditRequest
+      .input("entityName", sql.NVarChar, "Meeting")
+      .input("entityId", sql.Int, meetingId)
+      .input("actionType", sql.NVarChar, "Insert")
+      .input("performedBy", sql.NVarChar, visitors[0].fullName)
+      .query(`
+        INSERT INTO AuditLogs (EntityName, EntityID, ActionType, PerformedBy)
+        VALUES (@entityName, @entityId, @actionType, @performedBy)
+      `);
+
+    await transaction.commit();
+    res.status(201).json({ meetingId, status: "CheckedIn" });
   } catch (err) {
+    if (transaction) {
+      try { await transaction.rollback(); } catch (e) { console.error("Rollback failed:", e); }
+    }
     console.error("Error creating meeting:", err);
     res.status(500).json({ error: "Failed to create meeting." });
   }
@@ -89,12 +95,12 @@ router.get("/", async (req, res) => {
     `;
 
     if (status) {
-      request.input("status", sql.VarChar(50), status);
+      request.input("status", sql.NVarChar, status);
       query += " AND m.Status = @status";
     }
 
     if (date) {
-      request.input("date", sql.VarChar(10), date);
+      request.input("date", sql.NVarChar, date);
       query += " AND CAST(m.CheckInTime AS DATE) = @date";
     }
 
@@ -148,10 +154,10 @@ router.put("/:id/checkout", async (req, res) => {
 
     // log the action
     await pool.request()
-      .input("entityName", sql.VarChar(100), "Meeting")
+      .input("entityName", sql.NVarChar, "Meeting")
       .input("entityId", sql.Int, parseInt(req.params.id))
-      .input("actionType", sql.VarChar(50), "CheckOut")
-      .input("performedBy", sql.VarChar(150), "Reception")
+      .input("actionType", sql.NVarChar, "CheckOut")
+      .input("performedBy", sql.NVarChar, "Reception")
       .query(`
         INSERT INTO AuditLogs (EntityName, EntityID, ActionType, PerformedBy)
         VALUES (@entityName, @entityId, @actionType, @performedBy)

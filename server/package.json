@@ -6,9 +6,8 @@
     "start": "node index.js"
   },
   "dependencies": {
-    "cors": "^2.8.5",
-    "express": "^4.21.0",
-    "mssql": "^11.0.1",
-    "msnodesqlv8": "^4.2.1"
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
+    "mssql": "^12.2.1"
   }
 }

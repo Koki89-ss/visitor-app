@@ -4,7 +4,7 @@ import QRCode from "react-qr-code";
 
 function QRPage() {
   const navigate = useNavigate();
-  const baseUrl = process.env.REACT_APP_BASE_URL || "http://localhost:3000";
+  const baseUrl = process.env.REACT_APP_BASE_URL || "https://visitor-app-delta.vercel.app";
   const registrationUrl = `${baseUrl}/visitor-registration`;
 
   return (

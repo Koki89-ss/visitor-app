@@ -3,19 +3,19 @@ const sql = require("mssql");
 const config = {
   server: "DESKTOP-JALOKH3",
   database: "VisitorsManagementSystem",
+  user: "visitor_user",
+  password: "Password123!",
   options: {
-    trustedConnection: true,
+    encrypt: false,
     trustServerCertificate: true,
-    enableArithAbort: true,
   },
-  driver: "msnodesqlv8",
 };
 
 let pool;
 
 async function getPool() {
   if (!pool) {
-    pool = await new sql.ConnectionPool(config).connect();
+    pool = await sql.connect(config);
     console.log("Connected to SQL Server");
   }
   return pool;
