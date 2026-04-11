@@ -14,12 +14,12 @@ All logins are recorded in the `AuditLogs` table.
 | Field    | Value                                          |
 |----------|------------------------------------------------|
 | Email    | Any employee email (e.g. `koketso@mphatek.com`) |
-| Password | `Mphatek2026`                                  |
+| Password | `Mph@t3kV1s1t0r2026`                           |
 
 ## Changing the Password
 
 Edit `SHARED_PASSWORD` in `server/routes/auth.js`:
 
 ```js
-const SHARED_PASSWORD = "Mphatek2026";
+const SHARED_PASSWORD = "Mph@t3kV1s1t0r2026";
 ```
