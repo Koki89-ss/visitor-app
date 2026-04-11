@@ -23,6 +23,13 @@ app.get("/api/health", (req, res) => {
   res.json({ status: "ok" });
 });
 
-app.listen(PORT, () => {
+const { getPool } = require("./db");
+
+app.listen(PORT, async () => {
   console.log(`Server running on http://localhost:${PORT}`);
+  try {
+    await getPool();
+  } catch (err) {
+    console.error("Failed to connect to database:", err.message);
+  }
 });
