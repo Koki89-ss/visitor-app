@@ -2,7 +2,7 @@ const express = require("express");
 const { sql, getPool } = require("../db");
 const router = express.Router();
 
-const SHARED_PASSWORD = "Mphatek2026";
+const SHARED_PASSWORD = "Mph@t3kV1s1t0r2026";
 
 // POST /api/auth/login
 router.post("/login", async (req, res) => {
