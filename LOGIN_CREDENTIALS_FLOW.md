@@ -15,7 +15,7 @@ All logins are recorded in the `AuditLogs` table.
 
 | Field    | Value                                          |
 |----------|------------------------------------------------|
-| Email    | Any employee email (e.g. `koketso@mphatek.com`) |
+| Email    | Any employee email (e.g. `boipelo.mohloboli@mphatek.com`) |
 | Password | `Mph@t3kV1s1t0r2026`                           |
 
 ## Changing the Password
