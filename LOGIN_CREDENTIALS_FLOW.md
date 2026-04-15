@@ -2,6 +2,8 @@
 
 ## Login Flow
 
+# CLICK CNTRL + SHIFT + P
+
 1. Go to `/admin`
 2. Enter your employee email and the shared password
 3. On success, the dashboard greets you by first name and shows your department
